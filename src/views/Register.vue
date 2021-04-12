@@ -162,6 +162,23 @@ export default {
       }
     };
 
+    const checkIsExistName = (rule,value,callback) => {
+      if(value){
+        this.request.get('/register/checkUserIsExist/'+value)
+        .then(response => {
+          if(response.data){
+            callback(new Error('账户已经存在'));
+          }
+        })
+        .catch(err => {
+          console.log(err);
+          callback(new Error('网络错误'));
+        });
+      }else{
+        callback(new Error('账户不能为空'))
+      }
+    };
+
   /*  let checkValue = (rule,value,callback) => {
       if(!value) return callback(new Error('值不能为空'))
     }*/
@@ -171,7 +188,8 @@ export default {
       rules: {
         username: [
          /* { validator: checkValue,trigger: 'blur'},*/
-          { required: true,message: '账户不能为空',trigger: 'blur'}
+          { required: true,message: '账户不能为空',trigger: 'blur'},
+          { validator: checkIsExistName,trigger: 'blur'}
           ],
         password: [
           { required: true,message: '密码不能为空',trigger: 'blur'},
