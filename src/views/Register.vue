@@ -17,16 +17,17 @@
                     show-password>
           </el-input>
         </el-form-item>
-        <el-form-item label="性别"  prop="sex" >
+        <el-form-item label="性别"  prop="sex">
           <el-radio-group v-model="form.sex">
-            <el-radio label="男">男</el-radio>
-            <el-radio label="女">女</el-radio>
+            <el-radio :label="1">男</el-radio>
+            <el-radio :label="2">女</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="省份"  prop="province" >
           <el-select v-model="form.province"
                      filterable
                      placeholder="请选择"
+                     v-on:visble-change="loadProvinces"
                      v-on:change="loadCity(form.province)"
                      >
             <el-option v-for="item in province_array"
@@ -80,7 +81,25 @@ export default {
       console.log('submit!!');
       this.$refs[formName].validate((valid,invalidFields) => {
         if (valid) {
-          console.log(this.form);
+          console.log('doPost!!');
+          this.request.data = {
+            username: this.form.username,
+            password: this.form.password,
+            sex: this.form.sex,
+            email: this.form.email,
+            provinceId: this.form.province,
+            cityId: this.form.city
+          }
+          this.request.post('/register')
+          .then( response => {
+            if(response.data.statusCode === "FAILED"){
+              //注册失败,提醒客户
+              //todo
+            }else{
+              //注册成功,返回主页
+              //todo
+            }
+          });
         } else {
           console.log('error submit!!');
           console.log(invalidFields);
@@ -96,6 +115,7 @@ export default {
 
     loadProvinces(){
       if(this.province_array.length === 0){
+        this.request.timeout = 5000;
         this.request.get('/province/all')
           .then(response => {
             if(response.data){
@@ -168,6 +188,8 @@ export default {
         .then(response => {
           if(response.data){
             callback(new Error('账户已经存在'));
+          }else{
+            callback();
           }
         })
         .catch(err => {
@@ -199,8 +221,11 @@ export default {
           { required: true,message: '密码不能为空',trigger: 'blur'},
           { validator: checkConfirmPassword,trigger:'blur'}
         ],
+        sex: [
+          { required: true,message: '性别不能为空',trigger: 'blur'}
+        ],
         email: [
-          { required: false,message: '邮箱不能为空',trigger: 'blur'},
+          { required: true,message: '邮箱不能为空',trigger: 'blur'},
           { validator: checkEmail,trigger: ['blur','change']},
         ],
         province: [
@@ -213,7 +238,7 @@ export default {
         password: '',
         confirmPassword: '',
         email: '',
-        sex: '男',
+        sex: 1,
         province: null,
         city:null,
       }
