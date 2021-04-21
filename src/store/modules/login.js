@@ -1,7 +1,6 @@
 const state = {
   isLogin: false
 }
-
 const mutations = {
   doLogin(state){
     state.isLogin = true;
@@ -9,8 +8,16 @@ const mutations = {
 }
 
 
+const actions = {
+  doLogin(context){
+    context.commit('doLogin')
+  }
+}
+
+
 export default {
-  namespace: true,
+  namespaced: true,
   state,
-  mutations
+  mutations,
+  actions
 }

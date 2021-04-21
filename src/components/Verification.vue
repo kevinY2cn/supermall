@@ -19,7 +19,7 @@
   </div>
 
 </template>
-
+//test
 <script>
 import SecurityCode  from 'components/common/SecurityCode'
 
