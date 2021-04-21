@@ -1,6 +1,5 @@
 <template>
-  <el-container class="center"
-                >
+  <el-container class="center">
     <el-main>
       <el-form :model="form" :rules="rules" status-icon label-width="100px" ref="register_form">
         <el-form-item label="账户"  prop="username" >
@@ -68,7 +67,7 @@
 
 <script>
 
-import g_request from '@request/index'
+import g_request from '../request/index'
 
 export default {
 
@@ -105,7 +104,6 @@ export default {
           .then( response => {
             if(response.data.statusCode === "FAILED"){
               //注册失败,提醒客户
-              //todo
               this.$message({
                 message: '注册失败',
                 center:true,
