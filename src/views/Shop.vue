@@ -72,7 +72,7 @@
         :on-exceed="handleExceed"
         list-type="text">
         <template v-slot:tip>
-          <div class="el-upload__tip" >只能上传一个excel文件</div>
+          <div class="el-upload__tip" >只能上传一个xlsx文件</div>
         </template>
         <template v-slot:trigger>
           <el-button  size="small" type="primary">点击上传</el-button>
@@ -80,18 +80,47 @@
         <el-button style="margin-left: 10px" type="success" @click="submitUpload" size="small" >提交</el-button>
       </el-upload>
 
-      <el-button  style="margin-left: 10px" size="small" type="primary" @click="exportData">导出</el-button>
+      <el-button  style="margin-left: 10px" size="small" type="primary" @click="exportTemplate">导出模板</el-button>
   </div>
 </template>
 
 <script>
+
+import request from '../request/index'
 export default {
   name: "Shop",
 
   methods: {
 
-    exportData(){
-      console.log('导出数据');
+    exportTemplate(){
+      request.responseType = 'blob'; //设置这个类型才能下载
+      request.get('/excel/export')
+          .then(response => {
+            let disposition = response.headers['content-disposition'];
+            let startIndex = disposition.indexOf('=');
+            let filename = disposition.substring(startIndex + 1);
+            if(response.status == 200){
+              //下载成功
+              let data = response.data;
+              let reader = new FileReader();
+              reader.readAsDataURL(data);
+              reader.onload = function(e){
+                let a = document.createElement('a');
+                a.download = filename;
+                a.href = e.target.result.toString();
+                let body = document.getElementsByTagName('body')[0];
+                body.append(a);
+                a.click();
+                body.removeChild(a);
+              }
+            }else{
+              console.error(response.status);
+            }
+          })
+          .catch(err => {
+            console.log(err);
+            //todo
+          })
     },
     handleEdit(index,row){
       console.log(index);
@@ -122,17 +151,15 @@ export default {
     },
 
     handleChange(file){
-      if(this.uploadStatus === 'failed'){
-        console.log('the upload is failed');
-        this.$refs['upload'].clearFiles();
-      }else if(this.uploadStatus === 'success'){
-        this.$refs['upload'].clearFiles();
+      if(this.uploadStatus === 'success'){
+        console.log('the upload is success');
       }else if(this.uploadStatus === 'uploading'){
         console.log('the file is uploading');
       }else{
         const name = file.name;
-        const extension = name.substring(name.indexOf('.')+1,name.length);
-        if(extension != 'txt'){
+        const extension = name.substring(name.indexOf('.') + 1,name.length);
+        if(extension != 'xlsx'){
+          console.debug("The upload file's extension is %s",extension);
           this.$refs['upload'].clearFiles();
           this.$message({
             message: '文件类型不正确',
@@ -142,7 +169,7 @@ export default {
           this.uploadStatus = 'failed';
         }else{
           //todo
-          this.uploadStatus = 'wait';
+          this.uploadStatus = 'wait upload';
         }
       }
     },
