@@ -58,29 +58,35 @@
 
     </el-table>
       <el-upload
-        style="float: left"
+        style="float: left;width:150px"
         ref="upload"
+        name="excel"
         :file-list="fileList"
         :before-upload="beforeUpload"
         :on-preview="handlePreview"
         :on-change="handleChange"
         :on-success="handleUploadSuccess"
-        :on-error="handleUploadError"
         :auto-upload="false"
         :limit=1
-        action=""
+        action="/api/excel/import/test"
         :on-exceed="handleExceed"
         list-type="text">
         <template v-slot:tip>
-          <div class="el-upload__tip" >只能上传一个xlsx文件</div>
+          <div class="el-upload__tip" >
+            只能上传一个xlsx文件
+            <div v-if="uploadIsError">
+              错误信息:
+              <div>{{errorMessage}}</div>
+            </div>
+          </div>
         </template>
         <template v-slot:trigger>
-          <el-button  size="small" type="primary">点击上传</el-button>
+          <el-button  size="small" type="primary"  >点击上传</el-button>
         </template>
         <el-button style="margin-left: 10px" type="success" @click="submitUpload" size="small" >提交</el-button>
       </el-upload>
 
-      <el-button  style="margin-left: 10px" size="small" type="primary" @click="exportTemplate">导出模板</el-button>
+      <el-button  style="margin-left: 10px;float:left" size="small" type="primary" @click="exportTemplate">导出模板</el-button>
   </div>
 </template>
 
@@ -126,6 +132,7 @@ export default {
       console.log(index);
       console.log(row);
     },
+
     submitUpload(){
       if(this.uploadStatus === 'wait'){
         console.log('submit upload');
@@ -140,19 +147,25 @@ export default {
       console.log('handle preview');
     },
 
-    handleUploadError(){
-      this.uploadStatus = 'failed';
-    },
-
     handleUploadSuccess(res){
       if(res){
-        this.uploadStatus = 'success';
+        this.$refs['upload'].clearFiles();
+        console.log(res);
+        if(res.statusCode === 'SUCCESS'){
+          this.uploadStatus = 'success';
+          this.uploadIsError = false;
+        }else{
+          this.uploadStatus = 'failed';
+          this.uploadIsError = true;
+          this.errorMessage = res.resultMessage;
+        }
       }
     },
 
     handleChange(file){
       if(this.uploadStatus === 'success'){
         console.log('the upload is success');
+        this.uploadIsError = false;
       }else if(this.uploadStatus === 'uploading'){
         console.log('the file is uploading');
       }else{
@@ -169,7 +182,7 @@ export default {
           this.uploadStatus = 'failed';
         }else{
           //todo
-          this.uploadStatus = 'wait upload';
+          this.uploadStatus = 'wait';
         }
       }
     },
@@ -182,7 +195,7 @@ export default {
           type: 'error',
           duration: 1000,
         });
-        return false;
+        //return false;
       }
     },
 
@@ -197,6 +210,8 @@ export default {
 
   data(){
     return {
+      uploadIsError: false,
+      errorMessage: '',
       fileList: [],
       uploadStatus: '',
       dialogImportExcelVisible: false,
