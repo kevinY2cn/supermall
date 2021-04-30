@@ -1,33 +1,68 @@
 <template>
   <div>
+    <el-row :gutter="20">
+      <el-col :span="6"></el-col>
+      <el-col :span="6"></el-col>
+      <el-col :span="9">
+
+      </el-col>
+
+      <el-col :span="3">
+        <el-button
+        type="primary"
+        size="medium"
+        @click="handleEdit"
+        >保存</el-button>
+        <el-button
+          type="primary"
+          size="medium"
+          @click="handleRemove"
+        >删除</el-button>
+      </el-col>
+    </el-row>
     <el-table :data="tableData"
               stripe
               style="width: 100%"
               border
+              @cell-dblclick = "test"
               height="250">
       <el-table-column
         type="selection"
-        width="55"
-      ></el-table-column>
+        width="55">
+      </el-table-column>
       <el-table-column
-        prop="id"
-        label="商品ID"
+        prop="itemId"
+        label="ID"
         fixed
         width="180"
-      ></el-table-column>
+      >
+      </el-table-column>
       <el-table-column
-        prop="name"
         label="名称"
         width="180"
-      ></el-table-column>
+      >
+        <template v-slot:default="scope">
+          <span>{{scope.row.name}}</span>
+          <el-input style="display: none"
+                    size="small"
+                    v-model="scope.row.name" placeholder="请输入名称"
+                    @blur="editFinished(scope.row,$event)"></el-input>
+        </template>
+
+      </el-table-column>
       <el-table-column
         prop="category"
         label="种类"
         width="180"
       ></el-table-column>
       <el-table-column
-        prop="weight"
-        label="重量(公斤)"
+        prop="count"
+        label="数量"
+        width="180"
+      ></el-table-column>
+        <el-table-column
+        prop="unit"
+        label="单位"
         width="180"
       ></el-table-column>
       <el-table-column
@@ -52,11 +87,28 @@
         <template v-slot:default="scope">
           <el-button
             size="mini"
-            @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
+            type="danger"
+            icon="el-icon-delete"
+            circle
+            @click="handleDelete(scope.$index, scope.row)"></el-button>
         </template>
       </el-table-column>
 
     </el-table>
+
+
+    <el-pagination
+      style="text-align: center"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      :current-page="currentPage"
+      :page-sizes="[10, 50, 100]"
+      :page-size="pageSize"
+      :pager-count="5"
+      background
+      layout="total, sizes, prev, pager, next, jumper"
+      :total="totalSize">
+    </el-pagination>
       <el-upload
         style="float: left;width:150px"
         ref="upload"
@@ -96,8 +148,92 @@ import request from '../request/index'
 export default {
   name: "Shop",
 
-  methods: {
+  mounted() {
+    request.params = {
+      page: this.currentPage,
+      pageSize: this.pageSize
+    }
+    request.get("/item/list")
+      .then(res => {
+        console.log(res);
+        let data = res.data;
+        this.tableData = data.rows;
+        this.totalSize = data.totalSize;
+      }).catch(err => {
+      if(err) console.log("错误");
+    })
+  },
 
+  methods: {
+    handleRemove(){
+      console.log('删除');
+    },
+    editFinished(row,event){
+      console.log(row);
+      let target = event.target;
+      let div = target.parentNode;
+      let span = div.previousSibling;
+      div.style.display = "none";
+      span.style.display = "inline";
+      this.updateList.push( {
+        itemId: row.itemId,
+        date: row.date,
+        name: row.name,
+        category: row.category,
+        unit: row.unit,
+        count: row.count,
+        origin: row.origin
+      });
+
+    },
+
+    test(row,column,cell,event){
+      console.log(1 || row);
+      console.log(1 ||column);
+      console.log(1 ||cell);
+      //todo
+      if(cell && cell.children[0].children[0] && cell.children[0].children[1]) {
+        cell.children[0].children[0].style.display = "none";
+        cell.children[0].children[1].style.display = "inline";
+        cell.children[0].children[1].children[0].focus();
+      }
+
+      console.log(1 ||event);
+    },
+    handleSizeChange(val){
+      this.pageSize = val;
+      request.params = {
+        page: this.currentPage,
+        pageSize: this.pageSize
+      }
+      request.get("/item/list")
+        .then(res => {
+          console.log(res);
+          let data = res.data;
+          this.tableData = data.rows;
+          this.totalSize = data.totalSize;
+        }).catch(err => {
+        if(err) console.log("错误");
+      })
+      console.log(`每页有${val}条`)
+    },
+    handleCurrentChange(val){
+      this.currentPage = val;
+      request.params = {
+        page: this.currentPage,
+        pageSize: this.pageSize
+      }
+      request.get("/item/list")
+        .then(res => {
+          console.log(res);
+          let data = res.data;
+          this.tableData = data.rows;
+          this.totalSize = data.totalSize;
+        }).catch(err => {
+        if(err) console.log("错误");
+      })
+      console.log(`当前页${val}`);
+    },
     exportTemplate(){
       request.responseType = 'blob'; //设置这个类型才能下载
       request.get('/excel/export')
@@ -128,11 +264,26 @@ export default {
             //todo
           })
     },
-    handleEdit(index,row){
+    handleEdit(){
+      if(this.updateList.length > 0){
+        request.data = this.updateList;
+        request.postJson("/item/update")
+          .then(res => {
+            if(res) {
+              console.log(res);
+              console.log('update');
+            }
+            this.updateList = [];
+          }).catch(err => {
+            console.log(err);
+          //this.updateList = [];
+        });
+      }
+    },
+    handleDelete(index,row){
       console.log(index);
       console.log(row);
     },
-
     submitUpload(){
       if(this.uploadStatus === 'wait'){
         console.log('submit upload');
@@ -153,7 +304,11 @@ export default {
         console.log(res);
         if(res.statusCode === 'SUCCESS'){
           this.uploadStatus = 'success';
-          this.uploadIsError = false;
+          this.$message({
+            message: '上传成功',
+            type: 'success',
+            duration: 1000,
+          });
         }else{
           this.uploadStatus = 'failed';
           this.uploadIsError = true;
@@ -166,6 +321,8 @@ export default {
       if(this.uploadStatus === 'success'){
         console.log('the upload is success');
         this.uploadIsError = false;
+        this.errorMessage = '';
+        this.uploadStatus = 'wait';
       }else if(this.uploadStatus === 'uploading'){
         console.log('the file is uploading');
       }else{
@@ -196,6 +353,9 @@ export default {
           duration: 1000,
         });
         //return false;
+      }else{
+        this.uploadIsError = false;
+        this.errorMessage = '';
       }
     },
 
@@ -210,6 +370,10 @@ export default {
 
   data(){
     return {
+      updateList: [],
+      totalSize: 0,
+      currentPage: 1,
+      pageSize: 10,
       uploadIsError: false,
       errorMessage: '',
       fileList: [],
@@ -218,37 +382,14 @@ export default {
       search: '',
       tableData: [
         {
-          id: '10090',
+          itemId: '10090',
           date: '1990-01-01',
           name: '猪肉',
           category: '肉制品',
-          weight: 10,
+          unit: '公斤',
+          count: 10,
           origin: '上海市普陀区金沙江路1518'
-        },
-        {
-          id: '10090',
-          date: '1990-02-01',
-          name: '牛肉',
-          category: '肉制品',
-          weight: 20,
-          origin: '上海市普陀区金沙江路1518'
-        },
-        {
-          id: '10090',
-          date: '1990-03-01',
-          name: '鸡肉',
-          category: '肉制品',
-          weight: 30,
-          origin: '上海市普陀区金沙江路1518'
-        },
-        {
-          id: '10090',
-          date: '1990-04-01',
-          name: '鸭肉',
-          category: '肉制品',
-          weight: 40,
-          origin: '上海市普陀区金沙江路1518'
-        },
+        }
       ]
     }
   }
