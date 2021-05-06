@@ -16,7 +16,7 @@
         <el-button
           type="primary"
           size="medium"
-          @click="handleRemove"
+          @click="handleBatchDelete"
         >删除</el-button>
       </el-col>
     </el-row>
@@ -24,7 +24,9 @@
               stripe
               style="width: 100%"
               border
-              @cell-dblclick = "test"
+              @cell-dblclick = "editCell"
+              @select-all = "selectAll"
+              @select = "selectOne"
               height="250">
       <el-table-column
         type="selection"
@@ -149,24 +151,23 @@ export default {
   name: "Shop",
 
   mounted() {
-    request.params = {
-      page: this.currentPage,
-      pageSize: this.pageSize
-    }
-    request.get("/item/list")
-      .then(res => {
-        console.log(res);
-        let data = res.data;
-        this.tableData = data.rows;
-        this.totalSize = data.totalSize;
-      }).catch(err => {
-      if(err) console.log("错误");
-    })
+    this.doGetData();
   },
 
   methods: {
-    handleRemove(){
-      console.log('删除');
+    doGetData(page,pageSize){
+      request.params = {
+        page: page?page:this.currentPage,
+        pageSize: pageSize?pageSize:this.pageSize
+      }
+      request.get("/item/list")
+        .then(res => {
+          let data = res.data;
+          this.tableData = data.rows;
+          this.totalSize = data.totalSize;
+        }).catch(err => {
+        if(err) console.log("错误");
+      })
     },
     editFinished(row,event){
       console.log(row);
@@ -187,7 +188,7 @@ export default {
 
     },
 
-    test(row,column,cell,event){
+    editCell(row,column,cell,event){
       console.log(1 || row);
       console.log(1 ||column);
       console.log(1 ||cell);
@@ -202,37 +203,11 @@ export default {
     },
     handleSizeChange(val){
       this.pageSize = val;
-      request.params = {
-        page: this.currentPage,
-        pageSize: this.pageSize
-      }
-      request.get("/item/list")
-        .then(res => {
-          console.log(res);
-          let data = res.data;
-          this.tableData = data.rows;
-          this.totalSize = data.totalSize;
-        }).catch(err => {
-        if(err) console.log("错误");
-      })
-      console.log(`每页有${val}条`)
+      this.doGetData();
     },
     handleCurrentChange(val){
       this.currentPage = val;
-      request.params = {
-        page: this.currentPage,
-        pageSize: this.pageSize
-      }
-      request.get("/item/list")
-        .then(res => {
-          console.log(res);
-          let data = res.data;
-          this.tableData = data.rows;
-          this.totalSize = data.totalSize;
-        }).catch(err => {
-        if(err) console.log("错误");
-      })
-      console.log(`当前页${val}`);
+      this.doGetData();
     },
     exportTemplate(){
       request.responseType = 'blob'; //设置这个类型才能下载
@@ -267,7 +242,7 @@ export default {
     handleEdit(){
       if(this.updateList.length > 0){
         request.data = this.updateList;
-        request.postJson("/item/update")
+        request.postByJson("/item/update")
           .then(res => {
             if(res) {
               console.log(res);
@@ -283,6 +258,29 @@ export default {
     handleDelete(index,row){
       console.log(index);
       console.log(row);
+      request.data = {
+        itemId: row.itemId
+      };
+      request.post("/item/delete")
+      .then(res => {
+        if(res.status == 200){
+          this.doGetData();
+        }
+      }).catch(err => {
+        console.log(err);
+      })
+    },
+    handleBatchDelete(){
+      console.log('删除');
+      if(this.deleteList.length > 0){
+        request.data = this.deleteList;
+        request.postByJson("/item/delete/list")
+        .then(res => {
+          if(res.status == 200){
+            this.doGetData();
+          }
+        })
+      }
     },
     submitUpload(){
       if(this.uploadStatus === 'wait'){
@@ -366,10 +364,21 @@ export default {
         duration: 1000,
       });
     },
+
+    selectOne(selection){
+      this.deleteList = selection;
+      console.log(this.deleteList);
+    },
+
+    selectAll(selection){
+      this.deleteList = selection;
+      console.log(this.deleteList);
+    }
   },
 
   data(){
     return {
+      deleteList: [],
       updateList: [],
       totalSize: 0,
       currentPage: 1,
