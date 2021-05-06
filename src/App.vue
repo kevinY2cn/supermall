@@ -3,8 +3,10 @@
     <router-link to="/home" tag="button">首页</router-link>
 
     <router-link to="/login" tag="button">登陆</router-link>
+
+    <router-link to="/shop" tag="button">商城</router-link>
     <router-view/>
-    <h2>{{isLogin}}</h2>
+<!--    <h2>{{isLogin}}</h2>-->
 <!--    <verification></verification>-->
   </div>
 </template>
