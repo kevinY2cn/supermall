@@ -5,6 +5,8 @@
     <router-link to="/login" tag="button">登陆</router-link>
 
     <router-link to="/shop" tag="button">商城</router-link>
+
+    <router-link to="/authority" tag="button">权限管理</router-link>
     <router-view/>
 <!--    <h2>{{isLogin}}</h2>-->
 <!--    <verification></verification>-->

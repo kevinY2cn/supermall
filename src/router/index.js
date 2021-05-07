@@ -6,6 +6,7 @@ const Home = () => import('../views/Home')
 const Login = () => import('../views/Login')
 const Register = () => import('../views/Register')
 const Shop = () => import('../views/Shop')
+const Authority = () => import('../views/Authority')
 
 //1.安装VueRouter
 Vue.use(VueRouter)
@@ -30,6 +31,10 @@ const routes = [
   {
     path: '/shop',
     component: Shop
+  },
+  {
+    path: '/authority',
+    component: Authority
   }
 ]
 
