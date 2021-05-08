@@ -170,7 +170,6 @@ export default {
       })
     },
     editFinished(row,event){
-      console.log(row);
       let target = event.target;
       let div = target.parentNode;
       let span = div.previousSibling;
@@ -189,17 +188,11 @@ export default {
     },
 
     editCell(row,column,cell,event){
-      console.log(1 || row);
-      console.log(1 ||column);
-      console.log(1 ||cell);
-      //todo
       if(cell && cell.children[0].children[0] && cell.children[0].children[1]) {
         cell.children[0].children[0].style.display = "none";
         cell.children[0].children[1].style.display = "inline";
         cell.children[0].children[1].children[0].focus();
       }
-
-      console.log(1 ||event);
     },
     handleSizeChange(val){
       this.pageSize = val;

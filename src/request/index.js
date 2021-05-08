@@ -60,6 +60,11 @@ export default {
       headers: this.json_header
     });
   },
+
+  all(...promise){
+    return axios.all(...promise);
+  }
+
 }
 
 
