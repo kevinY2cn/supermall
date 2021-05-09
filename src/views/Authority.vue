@@ -28,25 +28,25 @@
         @cell-dblclick = "editCell"
         width="100%">
       <el-table-column prop="id" label="ID" width="180"></el-table-column>
-      <el-table-column prop="name" label="权限名" width="180">
+      <el-table-column prop="permission_name" label="权限名" width="180">
         <template v-slot:default="scope">
-          <span>{{scope.row.name}}</span>
+          <span>{{scope.row.permission_name}}</span>
           <el-input style="display: none"
                     size="small"
-                    v-model="scope.row.name" placeholder="请输入名称"
+                    v-model="scope.row.permission_name" placeholder="请输入名称"
                     @blur="editFinished(scope.row,$event)"></el-input>
         </template>
 
       </el-table-column>
       <el-table-column prop="module_name" label="可访问模块" width="180">
         <template v-slot:default="scope">
-          <span>{{scope.row.module}}</span>
+          <span>{{scope.row.module_name}}</span>
           <el-cascader
             placeholder = "请选择"
             v-model="value"
             style="display: none"
             :options="moduleOptions"
-            :props="{checkStrictly: true, label: 'module_name', value: 'id'}"
+            :props="{checkStrictly: true, label: 'label', value: 'value'}"
             @change="handleChange"
             @visible-change="visibleChange(scope.row,value,$event)"
             @blur="blurMethod"
@@ -89,10 +89,10 @@ export default {
   mounted() {
     let moduleListReq = request.get('/module/list');
     let permissionListReq = request.get('/permission/list');
-    request.all(moduleListReq,permissionListReq)
+    /*request.all(moduleListReq,permissionListReq)
       .then(res => {
         console.log(res);
-      });
+      });*/
   },
   methods: {
     handleChange(val){
@@ -109,11 +109,11 @@ export default {
          //隐藏
          console.log(this.value);
          this.moduleOptions.forEach((op,index,array) => {
-              if(op.id == this.value[0]){
-                module_name = op.module_name;
+              if(op.value == this.value[0]){
+                module_name = op.label;
               }
          });
-         row.module_name = module;
+         row.module_name = module_name;
          let cell = this.activeCell;
          cell.children[0].children[1].style.display = "none";
          cell.children[0].children[0].style.display = "inline";
@@ -123,8 +123,8 @@ export default {
         this.value = null;
         if(row.id){
           this.moduleOptions.forEach((obj,index,array) => {
-            if(row.module_name == obj.module_name){
-              this.value = obj.id;
+            if(row.module_name == obj.label){
+              this.value = obj.value;
             }
           })
         }else{
@@ -170,8 +170,8 @@ export default {
     addPermission(){
       let nullObj = {
         id: null,
-        name: null,
-        module: null
+        permission_name: null,
+        module_name: null
       };
       this.permission_list.push(nullObj);
     },
@@ -192,24 +192,24 @@ export default {
       value: [],
       moduleOptions: [
         {
-        id: 1,
-        module_name: "登陆模块"
+        value: 1,
+        label: "登陆模块"
         },
         {
-          id: 2,
-          module_name: "权限管理模块"
+          value: 2,
+          label: "权限管理模块"
         }],
       insertList: [],
       updateList: [],
       permission_list: [
         {
           id: 1,
-          name: '登陆权限',
+          permission_name: '登陆权限',
           module_name: '登陆模块'
         },
         {
           id: 1,
-          name: '管理权限',
+          permission_name: '管理权限',
           module_name: '权限管理模块'
         }
       ]
