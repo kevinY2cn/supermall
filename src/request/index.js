@@ -37,8 +37,8 @@ export default {
       return this.$axios.get(url,config);
     }
   },
-  post(url){
-    return this.$axios.post(url,this.data,{
+  post(url,data){
+    return this.$axios.post(url,data,{
       responseType: this.responseType,
       responseEncoding: this.responseEncoding,
       timeout: this.timeout,
@@ -52,14 +52,15 @@ export default {
     });
   },
 
-  postByJson(url){
-    return this.$axios.post(url,this.data,{
+  postByJson(url,data){
+    return this.$axios.post(url, data,{
       responseType: this.responseType,
       responseEncoding: this.responseEncoding,
       timeout: this.timeout,
       headers: this.json_header
     });
   },
+
 
   all(...promise){
     return axios.all(...promise);

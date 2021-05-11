@@ -16,39 +16,51 @@
         <el-button
           type="primary"
           size="medium"
+          @click="handleBatchDelete"
         >删除</el-button>
         <el-button
           type="primary"
           size="medium"
+          @click="save"
         >保存</el-button>
       </el-col>
     </el-row>
     <el-table
         :data="permission_list"
         @cell-dblclick = "editCell"
+        @select="selectOne"
+        @select-all="selectAll"
         width="100%">
-      <el-table-column prop="id" label="ID" width="180"></el-table-column>
-      <el-table-column prop="permission_name" label="权限名" width="180">
+      <el-table-column
+        type="selection"
+        width="55">
+      </el-table-column>
+      <el-table-column
+        type="index"
+        width="55">
+      </el-table-column>
+      <el-table-column prop="id" label="ID" width="180" class-name="hidden" label-class-name="hidden"></el-table-column>
+      <el-table-column prop="permissionName" label="权限名" width="180">
         <template v-slot:default="scope">
-          <span>{{scope.row.permission_name}}</span>
+          <span>{{scope.row.permissionName}}</span>
           <el-input style="display: none"
                     size="small"
-                    v-model="scope.row.permission_name" placeholder="请输入名称"
-                    @blur="editFinished(scope.row,$event)"></el-input>
+                    v-model="scope.row.permissionName" placeholder="请输入名称"
+                    @blur="editFinished(scope,$event)"></el-input>
         </template>
 
       </el-table-column>
-      <el-table-column prop="module_name" label="可访问模块" width="180">
+      <el-table-column prop="moduleName" label="可访问模块" width="180">
         <template v-slot:default="scope">
-          <span>{{scope.row.module_name}}</span>
+          <span>{{scope.row.moduleName}}</span>
           <el-cascader
             placeholder = "请选择"
             v-model="value"
             style="display: none"
             :options="moduleOptions"
-            :props="{checkStrictly: true, label: 'label', value: 'value'}"
+            :props="{checkStrictly: true, label: 'moduleName', value: 'id'}"
             @change="handleChange"
-            @visible-change="visibleChange(scope.row,value,$event)"
+            @visible-change="visibleChange(scope,value,$event)"
             @blur="blurMethod"
             @focus="focusMethod"
             clearable></el-cascader>
@@ -82,6 +94,7 @@ Array.prototype.remove = function(index){
   if(isNaN(index) || this.length < index) {return false};
   this.splice(index,1);
 }
+
 import request from 'request'
 
 export default {
@@ -89,17 +102,23 @@ export default {
   mounted() {
     let moduleListReq = request.get('/module/list');
     let permissionListReq = request.get('/permission/list');
-    /*request.all(moduleListReq,permissionListReq)
-      .then(res => {
-        console.log(res);
-      });*/
+    request.all([moduleListReq,permissionListReq])
+      .then(responses => {
+        let module_list_response = responses[0];
+        let permission_list_response = responses[1];
+        if(module_list_response.status == 200 && permission_list_response.status == 200){
+          this.moduleOptions = module_list_response.data;
+          this.permission_list = permission_list_response.data.rows;
+        }
+      });
   },
   methods: {
     handleChange(val){
-      this.value = val;
+      this.value = val[0];
     },
-    visibleChange(row,val,isVisible){
-      let module_name;
+    visibleChange(scope,val,isVisible){
+      let row = scope.row;
+      let moduleName;
       if(!isVisible){
         //todo 下拉框消失
        if(this.value.length <= 0){
@@ -107,13 +126,27 @@ export default {
          //必须选一个
        }else{
          //隐藏
-         console.log(this.value);
          this.moduleOptions.forEach((op,index,array) => {
-              if(op.value == this.value[0]){
-                module_name = op.label;
+              if(op.id == this.value){
+                moduleName = op.moduleName;
               }
          });
-         row.module_name = module_name;
+         row.moduleName = moduleName;
+         if(row.id){
+           this.updateList[scope.$index] = {
+             id: row.id,
+             permissionName: row.permissionName,
+             moduleName: row.moduleName,
+             moduleId: this.value,
+           };
+         }else{
+           this.insertList[scope.$index] = {
+             id: null,
+             permissionName: row.permissionName,
+             moduleName: row.moduleName,
+             moduleId: this.value,
+           };
+         }
          let cell = this.activeCell;
          cell.children[0].children[1].style.display = "none";
          cell.children[0].children[0].style.display = "inline";
@@ -123,8 +156,8 @@ export default {
         this.value = null;
         if(row.id){
           this.moduleOptions.forEach((obj,index,array) => {
-            if(row.module_name == obj.label){
-              this.value = obj.value;
+            if(row.moduleName == obj.moduleName){
+              this.value = obj.id;
             }
           })
         }else{
@@ -138,24 +171,27 @@ export default {
     focusMethod(event){
       console.log('focus');
     },
-    editFinished(row,event){
+    editFinished(scope,event){
+      let row = scope.row;
       let target = event.target;
       let div = target.parentNode;
       let span = div.previousSibling;
       div.style.display = "none";
       span.style.display = "inline";
       if(row.id > 0){
-        this.updateList.push({
+        this.updateList[scope.$index] = {
           id: row.id,
-          name: row.name,
-          module: row.module
-        });
+          permissionName: row.permissionName,
+          moduleName: row.moduleName,
+          moduleId: this.value,
+        };
       }else{
-        this.insertList.push({
+        this.insertList[scope.$index] = {
           id: null,
-          name: row.name,
-          module: row.module
-        });
+          permissionName: row.permissionName,
+          moduleName: row.moduleName,
+          moduleId: this.value,
+        }
       }
     },
     editCell(row,column,cell,event){
@@ -170,21 +206,122 @@ export default {
     addPermission(){
       let nullObj = {
         id: null,
-        permission_name: null,
-        module_name: null
+        permissionName: null,
+        moduleId : null,
+        moduleName: null
       };
       this.permission_list.push(nullObj);
     },
     handleDelete(index,row){
 
       if(row.id > 0){
-
+        this.deleteList[index] = row.id;
+        this.permission_list.remove(index);
       }else{
         //todo
         //删除还未保存的数据
         this.permission_list.remove(index);
       }
     },
+    handleBatchDelete(){
+      //请先保存新增的数据
+      if(this.insertList.length > 0){
+        this.$message({
+          message: '请先保存新增的数据',
+          type : 'error',
+          duration: 1500
+        })
+      }else{
+        //todo 批量删除
+        console.log(this.permission_list);
+
+        for(let j=0; j<this.permission_list.length; j++){
+          if(this.permission_list[j].id == null){
+            this.permission_list.remove(j);
+            j--;
+          }
+          for(let i=0; i<this.deleteList.length; i++) {
+            if (this.deleteList[i] == this.permission_list[j].id) {
+              this.permission_list.remove(j);
+              j--;
+            }
+          }
+        }
+      }
+    },
+    selectOne(selection){
+      this.deleteList = [];
+      selection.forEach((item,index,array) => {
+        if(item.id > 0)
+          this.deleteList.push(item.id);
+      })
+      console.log(this.deleteList);
+    },
+
+    selectAll(selection){
+      this.deleteList = [];
+      selection.forEach((item,index,array) => {
+        if(item.id > 0)
+          this.deleteList.push(item.id);
+      })
+      console.log(selection);
+    },
+    save(){
+      let requestArray = [];
+      if(this.insertList.length > 0){
+        let i = this.insertList.length - 1;
+        let newArray = [];
+        while(i >= 0){
+          if(this.insertList[i]){
+            newArray.push(this.insertList[i]);
+          }
+          i--;
+        }
+        let req = request.postByJson("/permission/add",newArray);
+        requestArray.push(req);
+      }
+
+      if(this.updateList.length > 0){
+        let i = this.updateList.length - 1;
+        let newArray = [];
+        while(i >= 0){
+          if(this.updateList[i]){
+            newArray.push(this.updateList[i]);
+          }
+          i--;
+        }
+        let req = request.postByJson("/permission/update",newArray);
+        requestArray.push(req);
+      }
+
+      if(this.deleteList.length > 0){
+        let i = this.deleteList.length - 1;
+        let newArray = [];
+        while(i >= 0){
+          if(this.deleteList[i]){
+            newArray.push(this.deleteList[i]);
+          }
+          i--;
+        }
+        let req = request.postByJson("/permission/delete",newArray);
+        requestArray.push(req);
+      }
+
+      if(requestArray.length > 0){
+        request.all(requestArray)
+        .then(resArray => {
+          request.get("/permission/list")
+          .then(res => {
+            if(res.status == 200){
+              this.permission_list = res.data.rows;
+              this.insertList = [];
+              this.deleteList = [];
+              this.updateList = [];
+            }
+          })
+        });
+      }
+    }
   },
   data(){
     return {
@@ -192,25 +329,27 @@ export default {
       value: [],
       moduleOptions: [
         {
-        value: 1,
-        label: "登陆模块"
+        id: 1,
+        moduleName: "登陆模块"
         },
         {
-          value: 2,
-          label: "权限管理模块"
-        }],
+          id: 2,
+          moduleName: "权限管理模块"
+        }
+        ],
       insertList: [],
       updateList: [],
+      deleteList: [],
       permission_list: [
         {
           id: 1,
-          permission_name: '登陆权限',
-          module_name: '登陆模块'
+          permissionName: '登陆权限',
+          moduleName: '登陆模块'
         },
         {
           id: 1,
-          permission_name: '管理权限',
-          module_name: '权限管理模块'
+          permissionName: '管理权限',
+          moduleName: '权限管理模块'
         }
       ]
     }
@@ -218,6 +357,8 @@ export default {
 }
 </script>
 
-<style scoped>
-
+<style>
+.hidden{
+  display: none;
+}
 </style>
