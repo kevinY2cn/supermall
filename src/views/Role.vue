@@ -11,7 +11,7 @@
         <el-button
           type="primary"
           size="medium"
-          @click="addPermission"
+          @click="addRole"
         >添加</el-button>
         <el-button
           type="primary"
@@ -26,7 +26,7 @@
       </el-col>
     </el-row>
     <el-table
-        :data="permission_list"
+        :data="roleList"
         @cell-dblclick = "editCell"
         @select="selectOne"
         @select-all="selectAll"
@@ -40,31 +40,18 @@
         width="55">
       </el-table-column>
       <el-table-column prop="id" label="ID" width="180" class-name="hidden" label-class-name="hidden"></el-table-column>
-      <el-table-column prop="permissionName" label="权限名" width="180">
+      <el-table-column prop="roleName" label="角色名" width="180">
         <template v-slot:default="scope">
-          <span>{{scope.row.permissionName}}</span>
+          <span>{{scope.row.roleName}}</span>
           <el-input style="display: none"
                     size="small"
-                    v-model="scope.row.permissionName" placeholder="请输入名称"
+                    v-model="scope.row.roleName" placeholder="请输入名称"
                     @blur="editFinished(scope,$event)"></el-input>
         </template>
 
       </el-table-column>
-      <el-table-column prop="moduleName" label="可访问模块" width="180">
-        <template v-slot:default="scope">
-          <span>{{scope.row.moduleName}}</span>
-          <el-cascader
-            placeholder = "请选择"
-            v-model="value"
-            style="display: none"
-            :options="moduleOptions"
-            :props="{checkStrictly: true, label: 'moduleName', value: 'id'}"
-            @change="handleChange"
-            @visible-change="visibleChange(scope,value,$event)"
-            clearable></el-cascader>
-        </template>
 
-      </el-table-column>
+      <el-table-column prop="createDate" label="创建时间" width="180" ></el-table-column>
       <el-table-column align="right"
                        width="180"
       >
@@ -96,72 +83,18 @@ Array.prototype.remove = function(index){
 import request from 'request'
 
 export default {
-  name: "Authority",
+  name: "Role",
   mounted() {
-    let moduleListReq = request.get('/module/list');
-    let permissionListReq = request.get('/permission/list');
-    request.all([moduleListReq,permissionListReq])
-      .then(responses => {
-        let module_list_response = responses[0];
-        let permission_list_response = responses[1];
-        if(module_list_response.status == 200 && permission_list_response.status == 200){
-          this.moduleOptions = module_list_response.data;
-          this.permission_list = permission_list_response.data.rows;
-        }
-      });
+    request.get("/role/list")
+    .then(res => {
+      if(res.status == 200){
+        this.roleList = res.data.rows;
+      }
+    })
   },
   methods: {
     handleChange(val){
       this.value = val[0];
-    },
-    visibleChange(scope,val,isVisible){
-      let row = scope.row;
-      let moduleName;
-      if(!isVisible){
-        //todo 下拉框消失
-       if(this.value.length <= 0){
-         //todo
-         //必须选一个
-       }else{
-         //隐藏
-         this.moduleOptions.forEach((op,index,array) => {
-              if(op.id == this.value){
-                moduleName = op.moduleName;
-              }
-         });
-         row.moduleName = moduleName;
-         if(row.id){
-           this.updateList[scope.$index] = {
-             id: row.id,
-             permissionName: row.permissionName,
-             moduleName: row.moduleName,
-             moduleId: this.value,
-           };
-         }else{
-           this.insertList[scope.$index] = {
-             id: null,
-             permissionName: row.permissionName,
-             moduleName: row.moduleName,
-             moduleId: this.value,
-           };
-         }
-         let cell = this.activeCell;
-         cell.children[0].children[1].style.display = "none";
-         cell.children[0].children[0].style.display = "inline";
-       }
-      }else{
-        //todo 下拉框出现
-        this.value = null;
-        if(row.id){
-          this.moduleOptions.forEach((obj,index,array) => {
-            if(row.moduleName == obj.moduleName){
-              this.value = obj.id;
-            }
-          })
-        }else{
-
-        }
-      }
     },
     editFinished(scope,event){
       let row = scope.row;
@@ -173,16 +106,12 @@ export default {
       if(row.id > 0){
         this.updateList[scope.$index] = {
           id: row.id,
-          permissionName: row.permissionName,
-          moduleName: row.moduleName,
-          moduleId: this.value,
+          roleName: row.roleName
         };
       }else{
         this.insertList[scope.$index] = {
           id: null,
-          permissionName: row.permissionName,
-          moduleName: row.moduleName,
-          moduleId: this.value,
+          roleName: row.roleName
         }
       }
     },
@@ -192,31 +121,27 @@ export default {
         cell.children[0].children[1].style.display = "inline";
         cell.children[0].children[1].children[0].click();
         cell.children[0].children[1].children[0].focus();
-        this.activeCell = cell;
       }
     },
-    addPermission(){
+    addRole(){
       let nullObj = {
         id: null,
-        permissionName: null,
-        moduleId : null,
-        moduleName: null
+        roleName: null,
       };
-      this.permission_list.push(nullObj);
+      this.roleList.push(nullObj);
     },
     handleDelete(index,row){
 
       if(row.id > 0){
         this.deleteList[index] = row.id;
-        this.permission_list.remove(index);
+        this.roleList.remove(index);
       }else{
         //todo
         //删除还未保存的数据
-        this.permission_list.remove(index);
+        this.roleList.remove(index);
       }
     },
     handleBatchDelete(){
-      //请先保存新增的数据
       if(this.insertList.length > 0){
         this.$message({
           message: '请先保存新增的数据',
@@ -225,16 +150,15 @@ export default {
         })
       }else{
         //todo 批量删除
-        console.log(this.permission_list);
 
-        for(let j=0; j<this.permission_list.length; j++){
-          if(this.permission_list[j].id == null){
-            this.permission_list.remove(j);
+        for(let j=0; j<this.roleList.length; j++){
+          if(this.roleList[j].id == null){
+            this.roleList.remove(j);
             j--;
           }
           for(let i=0; i<this.deleteList.length; i++) {
-            if (this.deleteList[i] == this.permission_list[j].id) {
-              this.permission_list.remove(j);
+            if (this.deleteList[i] == this.roleList[j].id) {
+              this.roleList.remove(j);
               j--;
             }
           }
@@ -242,21 +166,19 @@ export default {
       }
     },
     selectOne(selection){
-      this.deleteList = [];
       selection.forEach((item,index,array) => {
-        if(item.id > 0)
+        if(item.id > 0){
           this.deleteList.push(item.id);
-      })
-      console.log(this.deleteList);
-    },
+        }
+      });
+  },
 
     selectAll(selection){
-      this.deleteList = [];
       selection.forEach((item,index,array) => {
-        if(item.id > 0)
+        if(item.id > 0){
           this.deleteList.push(item.id);
-      })
-      console.log(selection);
+        }
+      });
     },
     save(){
       let requestArray = [];
@@ -269,7 +191,7 @@ export default {
           }
           i--;
         }
-        let req = request.postByJson("/permission/add",newArray);
+        let req = request.postByJson("/role/add",newArray);
         requestArray.push(req);
       }
 
@@ -282,7 +204,7 @@ export default {
           }
           i--;
         }
-        let req = request.postByJson("/permission/update",newArray);
+        let req = request.postByJson("/role/update",newArray);
         requestArray.push(req);
       }
 
@@ -295,17 +217,17 @@ export default {
           }
           i--;
         }
-        let req = request.postByJson("/permission/delete",newArray);
+        let req = request.postByJson("/role/delete",newArray);
         requestArray.push(req);
       }
 
       if(requestArray.length > 0){
         request.all(requestArray)
         .then(resArray => {
-          request.get("/permission/list")
+          request.get("/role/list")
           .then(res => {
             if(res.status == 200){
-              this.permission_list = res.data.rows;
+              this.roleList = res.data.rows;
               this.insertList = [];
               this.deleteList = [];
               this.updateList = [];
@@ -317,33 +239,10 @@ export default {
   },
   data(){
     return {
-      activeCell: null,
-      value: [],
-      moduleOptions: [
-        {
-        id: 1,
-        moduleName: "登陆模块"
-        },
-        {
-          id: 2,
-          moduleName: "权限管理模块"
-        }
-        ],
       insertList: [],
       updateList: [],
       deleteList: [],
-      permission_list: [
-        {
-          id: 1,
-          permissionName: '登陆权限',
-          moduleName: '登陆模块'
-        },
-        {
-          id: 1,
-          permissionName: '管理权限',
-          moduleName: '权限管理模块'
-        }
-      ]
+      roleList: []
     }
   }
 }
